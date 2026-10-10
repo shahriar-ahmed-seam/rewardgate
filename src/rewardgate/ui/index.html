@@ -6,6 +6,7 @@
   <title>RewardGate Telemetry Console | Post-Training Code RL Evaluation</title>
   <style>
     :root {
+      color-scheme: dark;
       --bg-canvas: #090b0e;
       --bg-surface: #101318;
       --bg-surface-elevated: #161a22;
@@ -21,6 +22,9 @@
       --accent-red-bright: #f85149;
       --accent-cyan: #388bfd;
       --accent-amber: #d29922;
+      --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+      --scrollbar-thumb-hover: rgba(255, 255, 255, 0.28);
+      --scrollbar-track: rgba(9, 11, 14, 0.6);
       --font-mono: "JetBrains Mono", "SF Mono", "Menlo", monospace;
       --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
@@ -29,6 +33,32 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
+
+    /* WebKit & Blink precision thin custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 4px;
+      transition: background 0.15s ease;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--scrollbar-thumb-hover);
+    }
+
+    ::-webkit-scrollbar-corner {
+      background: transparent;
     }
 
     body {
