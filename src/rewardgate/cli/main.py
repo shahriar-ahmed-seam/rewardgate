@@ -278,3 +278,36 @@ def bench(
     console.print(table)
     if output:
         console.print(f"Traces exported to: [green]{output}[/green]")
+
+
+@app.command()
+def serve(
+    port: int = typer.Option(8765, "--port", "-p", help="Port to bind dashboard server"),
+    host: str = typer.Option("127.0.0.1", "--host", help="Host interface to bind"),
+) -> None:
+    """Launch anti-AI-slop developer telemetry console."""
+    import http.server
+    import socketserver
+
+    ui_dir = Path(__file__).parent.parent / "ui"
+    if not ui_dir.exists():
+        console.print(f"[bold red][ERROR][/bold red] UI directory not found at '{ui_dir}'")
+        raise typer.Exit(code=1)
+
+    class CustomHandler(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory=str(ui_dir), **kwargs)
+
+        def log_message(self, format, *args):
+            pass
+
+    url = f"http://{host}:{port}"
+    console.print(f"[bold green][READY][/bold green] Console active at [cyan]{url}[/cyan]")
+    console.print("Press Ctrl+C to terminate server.")
+
+    with socketserver.TCPServer((host, port), CustomHandler) as httpd:
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Server stopped.[/yellow]")
+

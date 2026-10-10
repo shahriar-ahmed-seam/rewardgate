@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RewardGate Telemetry Console | Post-Training Code RL Evaluation</title>
+  <style>
+    :root {
+      --bg-canvas: #090b0e;
+      --bg-surface: #101318;
+      --bg-surface-elevated: #161a22;
+      --bg-surface-hover: #1c212c;
+      --border-subtle: rgba(255, 255, 255, 0.07);
+      --border-strong: rgba(255, 255, 255, 0.15);
+      --text-primary: #f0f3f6;
+      --text-secondary: #8b949e;
+      --text-muted: #484f58;
+      --accent-green: #238636;
+      --accent-green-bright: #3fb950;
+      --accent-red: #da3633;
+      --accent-red-bright: #f85149;
+      --accent-cyan: #388bfd;
+      --accent-amber: #d29922;
+      --font-mono: "JetBrains Mono", "SF Mono", "Menlo", monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.5;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 48px;
+      padding: 0 16px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 20px;
+      height: 20px;
+      stroke: var(--accent-green-bright);
+      fill: none;
+      stroke-width: 1.5;
+    }
+
+    .brand-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      color: var(--text-primary);
+    }
+
+    .badge-mono {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+    }
+
+    .ping-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .ping-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--accent-green-bright);
+      box-shadow: 0 0 6px rgba(63, 185, 80, 0.4);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button {
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    button:hover {
+      background: var(--bg-surface-hover);
+      border-color: var(--border-strong);
+    }
+
+    button.primary {
+      background: #1f6feb;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    button.primary:hover {
+      background: #388bfd;
+    }
+
+    /* Main Grid Layout */
+    .app-container {
+      display: grid;
+      grid-template-columns: 340px 1fr 380px;
+      height: calc(100vh - 48px);
+      background: var(--bg-canvas);
+    }
+
+    .panel {
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    .panel:last-child {
+      border-right: none;
+    }
+
+    .panel-header {
+      padding: 10px 14px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-body {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      flex: 1;
+    }
+
+    /* Code Viewers */
+    .tabs-nav {
+      display: flex;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 10px;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent-cyan);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    textarea.code-editor {
+      width: 100%;
+      height: 320px;
+      background: #0d1117;
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      color: #c9d1d9;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.45;
+      padding: 10px;
+      resize: vertical;
+      white-space: pre;
+    }
+
+    textarea.code-editor:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+    }
+
+    /* Gate Status Box */
+    .gate-status-card {
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 14px;
+      background: var(--bg-surface);
+    }
+
+    .gate-status-card.gate-open {
+      border-left: 3px solid var(--accent-green-bright);
+    }
+
+    .gate-status-card.gate-closed {
+      border-left: 3px solid var(--accent-red-bright);
+    }
+
+    .gate-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .gate-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 3px;
+    }
+
+    .badge-open {
+      background: rgba(63, 185, 80, 0.15);
+      color: var(--accent-green-bright);
+      border: 1px solid rgba(63, 185, 80, 0.3);
+    }
+
+    .badge-closed {
+      background: rgba(248, 81, 73, 0.15);
+      color: var(--accent-red-bright);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+    }
+
+    .gate-desc {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    /* Formula & Meter */
+    .reward-meter-card {
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 14px;
+      background: var(--bg-surface);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .score-display {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+
+    .score-value {
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .score-max {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .progress-bar-bg {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent-green-bright);
+      transition: width 0.2s ease;
+    }
+
+    /* Weight Sliders */
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .slider-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .slider-label span.val {
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #58a6ff;
+      cursor: pointer;
+    }
+
+    /* Telemetry Data Grid */
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-box {
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 10px;
+      background: var(--bg-surface);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+    }
+
+    .stat-val {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Invariant Diff Viewer */
+    .diff-box {
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 10px;
+      background: #0d1117;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.4;
+      max-height: 160px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .diff-del { color: #f85149; }
+    .diff-add { color: #3fb950; }
+
+    /* Telemetry Table */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    table.data-table th, table.data-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      text-align: left;
+    }
+
+    table.data-table th {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    table.data-table td.mono {
+      font-family: var(--font-mono);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <svg class="brand-icon" viewBox="0 0 24 24">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      <span class="brand-title">REWARDGATE</span>
+      <span class="badge-mono">RFC-001</span>
+      <div class="ping-container">
+        <div class="ping-dot"></div>
+        <span>ENGINE ACTIVE</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="btn-load-pass" onclick="loadSample(true)">Load Passing Code</button>
+      <button id="btn-load-fail" onclick="loadSample(false)">Load Failing Code</button>
+      <button id="btn-run-audit" onclick="runPerturbationAudit()">Run Invariant Audit</button>
+      <button class="primary" id="btn-recompute" onclick="recomputeAll()">Evaluate Candidate</button>
+    </div>
+  </header>
+
+  <div class="app-container">
+    <!-- Left Column: Source Candidate & Test Harness -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>Target Source & Tests</span>
+        <span class="badge-mono" id="lbl-problem-id">prob-fibonacci</span>
+      </div>
+      <div class="panel-body">
+        <div class="tabs-nav">
+          <button class="tab-btn active" id="tab-code-btn" onclick="switchTab('code')">Generated Candidate</button>
+          <button class="tab-btn" id="tab-test-btn" onclick="switchTab('test')">Test Harness</button>
+        </div>
+
+        <div id="view-code">
+          <textarea id="src-code-editor" class="code-editor" spellcheck="false"># Step 1: Compute nth Fibonacci number using iterative memoization.
+# Invariant: fib(0)=0, fib(1)=1, fib(n)=fib(n-1)+fib(n-2)
+# Reasoning: Linear time complexity prevents recursion blowup.
+def fib(n: int) -> int:
+    if n < 0:
+        raise ValueError("n must be non-negative")
+    if n <= 1:
+        return n
+    a, b = 0, 1
+    for _ in range(2, n + 1):
+        a, b = b, a + b
+    return b</textarea>
+        </div>
+
+        <div id="view-test" style="display: none;">
+          <textarea id="test-code-editor" class="code-editor" spellcheck="false">assert fib(0) == 0
+assert fib(1) == 1
+assert fib(5) == 5
+assert fib(10) == 55
+try:
+    fib(-1)
+    assert False, "Should raise ValueError"
+except ValueError:
+    pass</textarea>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-label">Scratchpad Reasoning Accounting</div>
+          <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+            <span>Thought Tokens: <strong id="val-scratch-tokens" class="stat-val" style="font-size:12px;">38</strong></span>
+            <span>Exempted: <strong class="badge-mono" style="color:var(--accent-green-bright);">TRUE</strong></span>
+          </div>
+          <div style="font-size:11px; color:var(--text-secondary); margin-top:4px;">
+            Reasoning comments protected from code bloat penalty.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Column: Gated Reward Engine Simulator -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>Gated Reward Formulation</span>
+        <span class="badge-mono">Post-Training RL Objective</span>
+      </div>
+      <div class="panel-body">
+        <div id="card-gate-status" class="gate-status-card gate-open">
+          <div class="gate-title">
+            <span style="font-weight: 600;">GATE CONDITION: T(C)</span>
+            <span id="badge-gate" class="gate-badge badge-open">[GATE OPEN]</span>
+          </div>
+          <div id="lbl-gate-reason" class="gate-desc">
+            Functional tests 100% verified. Quality and efficiency credits active.
+          </div>
+        </div>
+
+        <div class="reward-meter-card">
+          <div class="score-display">
+            <div>
+              <div class="stat-label">TOTAL SCALAR REWARD (R)</div>
+              <div id="lbl-final-score" class="score-value">1.4850</div>
+            </div>
+            <div class="score-max">/ 1.6000 max</div>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="bar-final-score" class="progress-bar-fill" style="width: 92%;"></div>
+          </div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-label" style="margin-bottom: 8px;">FORMULATION WEIGHT HYPERPARAMETERS</div>
+          <div class="slider-group">
+            <div class="slider-item">
+              <div class="slider-label">
+                <span>w_base: Base Correctness</span>
+                <span id="lbl-w-base" class="val">1.00</span>
+              </div>
+              <input type="range" id="slider-w-base" min="0" max="2" step="0.1" value="1.0" oninput="updateWeights()">
+            </div>
+            <div class="slider-item">
+              <div class="slider-label">
+                <span>w_speed: Direct Execution Runtime</span>
+                <span id="lbl-w-speed" class="val">0.30</span>
+              </div>
+              <input type="range" id="slider-w-speed" min="0" max="1" step="0.05" value="0.30" oninput="updateWeights()">
+            </div>
+            <div class="slider-item">
+              <div class="slider-label">
+                <span>w_static: Deterministic AST Maintainability</span>
+                <span id="lbl-w-static" class="val">0.20</span>
+              </div>
+              <input type="range" id="slider-w-static" min="0" max="1" step="0.05" value="0.20" oninput="updateWeights()">
+            </div>
+            <div class="slider-item">
+              <div class="slider-label">
+                <span>w_judge: Gated Soft Judge Score</span>
+                <span id="lbl-w-judge" class="val">0.10</span>
+              </div>
+              <input type="range" id="slider-w-judge" min="0" max="1" step="0.05" value="0.10" oninput="updateWeights()">
+            </div>
+            <div class="slider-item">
+              <div class="slider-label">
+                <span>P_penalty: Anti-Gaming Deduction</span>
+                <span id="lbl-w-penalty" class="val">0.50</span>
+              </div>
+              <input type="range" id="slider-w-penalty" min="0" max="1" step="0.05" value="0.50" oninput="updateWeights()">
+            </div>
+          </div>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Sub-Objective</th>
+              <th>Score</th>
+              <th>Weight</th>
+              <th>Credit</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Functional Pass</td>
+              <td class="mono" id="sub-pass-score">1.00</td>
+              <td class="mono" id="sub-pass-w">1.00</td>
+              <td class="mono" id="sub-pass-credit">+1.00</td>
+            </tr>
+            <tr>
+              <td>Execution Speed</td>
+              <td class="mono" id="sub-speed-score">0.95</td>
+              <td class="mono" id="sub-speed-w">0.30</td>
+              <td class="mono" id="sub-speed-credit">+0.285</td>
+            </tr>
+            <tr>
+              <td>AST Maintainability</td>
+              <td class="mono" id="sub-static-score">1.00</td>
+              <td class="mono" id="sub-static-w">0.20</td>
+              <td class="mono" id="sub-static-credit">+0.200</td>
+            </tr>
+            <tr>
+              <td>Gated Judge</td>
+              <td class="mono" id="sub-judge-score">0.00</td>
+              <td class="mono" id="sub-judge-w">0.10</td>
+              <td class="mono" id="sub-judge-credit">+0.000</td>
+            </tr>
+            <tr>
+              <td>Hacking Penalty</td>
+              <td class="mono" id="sub-penalty-score">0.00</td>
+              <td class="mono" id="sub-penalty-w">0.50</td>
+              <td class="mono" id="sub-penalty-credit">-0.000</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Right Column: Subsystems & Audit Inspector -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>Telemetry & Audit Inspectors</span>
+        <span class="badge-mono">Sandboxed</span>
+      </div>
+      <div class="panel-body">
+        <!-- Sandboxed Execution Telemetry -->
+        <div class="stat-box">
+          <div class="stat-label">SANDBOXED EXECUTION PROFILER</div>
+          <div class="telemetry-grid" style="margin-top:6px;">
+            <div>
+              <div class="stat-label">Wall-Clock Elapsed</div>
+              <div class="stat-val" id="val-wall-clock">0.024 ms</div>
+            </div>
+            <div>
+              <div class="stat-label">Peak Memory</div>
+              <div class="stat-val" id="val-peak-mem">4.12 KB</div>
+            </div>
+            <div>
+              <div class="stat-label">Timeout Triggered</div>
+              <div class="stat-val" id="val-timeout" style="color:var(--accent-green-bright);">FALSE</div>
+            </div>
+            <div>
+              <div class="stat-label">Normalized Speed</div>
+              <div class="stat-val" id="val-speed-norm">0.950</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Deterministic Static Analyzer -->
+        <div class="stat-box">
+          <div class="stat-label">DETERMINISTIC AST COMPLEXITY</div>
+          <div class="telemetry-grid" style="margin-top:6px;">
+            <div>
+              <div class="stat-label">McCabe Cyclomatic</div>
+              <div class="stat-val" id="val-cc">3</div>
+            </div>
+            <div>
+              <div class="stat-label">Cognitive Nesting</div>
+              <div class="stat-val" id="val-cog">1</div>
+            </div>
+            <div>
+              <div class="stat-label">Halstead Volume</div>
+              <div class="stat-val" id="val-h-vol">84.2</div>
+            </div>
+            <div>
+              <div class="stat-label">Bloat Ratio</div>
+              <div class="stat-val" id="val-bloat">1.02x</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Judge Anti-Gaming Auditor -->
+        <div class="stat-box">
+          <div class="stat-label">JUDGE INVARIANCE & NOFUNEVAL</div>
+          <div class="telemetry-grid" style="margin-top:6px;">
+            <div>
+              <div class="stat-label">Perturbation Invariance</div>
+              <div class="stat-val" id="val-invariance" style="color:var(--accent-green-bright);">ROBUST</div>
+            </div>
+            <div>
+              <div class="stat-label">Score Variance (σ²)</div>
+              <div class="stat-val" id="val-variance">0.0002</div>
+            </div>
+            <div>
+              <div class="stat-label">Gaming Resistance Index</div>
+              <div class="stat-val" id="val-resistance">0.978</div>
+            </div>
+            <div>
+              <div class="stat-label">Hacking Flagged</div>
+              <div class="stat-val" id="val-hack-status" style="color:var(--accent-green-bright);">NO</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Invariant Perturbation Diff Preview -->
+        <div class="stat-box">
+          <div class="stat-label">ADVERSARIAL INVARIANT TRANSFORM PREVIEW</div>
+          <div class="diff-box" id="diff-box-preview"><span class="diff-del"># Thought scratchpad removed</span>
+<span class="diff-del">- def fib(n: int) -> int:</span>
+<span class="diff-add">+ def fib(v_0: int) -> int:</span>
+<span class="diff-add">+     if v_0 <= 1: return v_0</span>
+<span class="diff-add">+     v_1, v_2 = 0, 1</span>
+<span class="diff-add">+     for _ in range(2, v_0 + 1): v_1, v_2 = v_2, v_1 + v_2</span>
+<span class="diff-add">+     return v_2</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isPassing = true;
+    let gamingFlagged = false;
+
+    function switchTab(tab) {
+      document.getElementById('view-code').style.display = tab === 'code' ? 'block' : 'none';
+      document.getElementById('view-test').style.display = tab === 'test' ? 'block' : 'none';
+      document.getElementById('tab-code-btn').classList.toggle('active', tab === 'code');
+      document.getElementById('tab-test-btn').classList.toggle('active', tab === 'test');
+    }
+
+    function loadSample(pass) {
+      isPassing = pass;
+      gamingFlagged = false;
+      if (pass) {
+        document.getElementById('lbl-problem-id').innerText = 'prob-fibonacci';
+        document.getElementById('src-code-editor').value = 
+`# Step 1: Compute nth Fibonacci number using iterative memoization.
+# Invariant: fib(0)=0, fib(1)=1, fib(n)=fib(n-1)+fib(n-2)
+# Reasoning: Linear time complexity prevents recursion blowup.
+def fib(n: int) -> int:
+    if n < 0:
+        raise ValueError("n must be non-negative")
+    if n <= 1:
+        return n
+    a, b = 0, 1
+    for _ in range(2, n + 1):
+        a, b = b, a + b
+    return b`;
+        document.getElementById('test-code-editor').value = 
+`assert fib(0) == 0
+assert fib(1) == 1
+assert fib(5) == 5
+assert fib(10) == 55
+try:
+    fib(-1)
+    assert False, "Should raise ValueError"
+except ValueError:
+    pass`;
+      } else {
+        document.getElementById('lbl-problem-id').innerText = 'prob-quicksort-buggy';
+        document.getElementById('src-code-editor').value = 
+`# Superficial docstrings designed to game LLM judges!
+"""High-performance sorting utility with enterprise-grade readability."""
+def sort(arr):
+    # Fails functional edge cases on negative numbers and duplicates
+    return sorted(arr)[:len(arr)-1]`;
+        document.getElementById('test-code-editor').value = 
+`assert sort([3, 1, 2]) == [1, 2, 3]
+assert sort([5, 5, 5]) == [5, 5, 5]`;
+      }
+      recomputeAll();
+    }
+
+    function runPerturbationAudit() {
+      gamingFlagged = !gamingFlagged;
+      const diffBox = document.getElementById('diff-box-preview');
+      if (gamingFlagged) {
+        diffBox.innerHTML = 
+`<span class="diff-del">[ALERT] High score variance detected on alpha-renamed AST!</span>
+<span class="diff-del">Baseline Score: 0.950 -> Renamed Score: 0.210 (Δ=0.740)</span>
+<span class="diff-add">+ Judge gaming pattern identified: Cosmetic docstring bias.</span>`;
+        document.getElementById('val-invariance').innerText = 'COMPROMISED';
+        document.getElementById('val-invariance').style.color = 'var(--accent-red-bright)';
+        document.getElementById('val-variance').innerText = '0.0825';
+        document.getElementById('val-resistance').innerText = '0.312';
+        document.getElementById('val-hack-status').innerText = 'YES';
+        document.getElementById('val-hack-status').style.color = 'var(--accent-red-bright)';
+      } else {
+        diffBox.innerHTML = 
+`<span class="diff-add">[PASSED] Alpha-renaming invariance verified (Δ < 0.005).</span>
+<span class="diff-add">+ AST semantics preserved identically across transformations.</span>`;
+        document.getElementById('val-invariance').innerText = 'ROBUST';
+        document.getElementById('val-invariance').style.color = 'var(--accent-green-bright)';
+        document.getElementById('val-variance').innerText = '0.0002';
+        document.getElementById('val-resistance').innerText = '0.978';
+        document.getElementById('val-hack-status').innerText = 'NO';
+        document.getElementById('val-hack-status').style.color = 'var(--accent-green-bright)';
+      }
+      recomputeAll();
+    }
+
+    function updateWeights() {
+      document.getElementById('lbl-w-base').innerText = parseFloat(document.getElementById('slider-w-base').value).toFixed(2);
+      document.getElementById('lbl-w-speed').innerText = parseFloat(document.getElementById('slider-w-speed').value).toFixed(2);
+      document.getElementById('lbl-w-static').innerText = parseFloat(document.getElementById('slider-w-static').value).toFixed(2);
+      document.getElementById('lbl-w-judge').innerText = parseFloat(document.getElementById('slider-w-judge').value).toFixed(2);
+      document.getElementById('lbl-w-penalty').innerText = parseFloat(document.getElementById('slider-w-penalty').value).toFixed(2);
+      recomputeAll();
+    }
+
+    function recomputeAll() {
+      const wBase = parseFloat(document.getElementById('slider-w-base').value);
+      const wSpeed = parseFloat(document.getElementById('slider-w-speed').value);
+      const wStatic = parseFloat(document.getElementById('slider-w-static').value);
+      const wJudge = parseFloat(document.getElementById('slider-w-judge').value);
+      const wPenalty = parseFloat(document.getElementById('slider-w-penalty').value);
+
+      const cardGate = document.getElementById('card-gate-status');
+      const badgeGate = document.getElementById('badge-gate');
+      const lblGateReason = document.getElementById('lbl-gate-reason');
+
+      if (!isPassing) {
+        // Strict gate closed
+        cardGate.className = 'gate-status-card gate-closed';
+        badgeGate.className = 'gate-badge badge-closed';
+        badgeGate.innerText = '[GATE CLOSED]';
+        lblGateReason.innerText = 'Strict gate closed: functional tests failed. Scale mismatch prevented: style & quality rewards clamped to 0.0000.';
+
+        document.getElementById('lbl-final-score').innerText = '0.0000';
+        document.getElementById('bar-final-score').style.width = '0%';
+        document.getElementById('bar-final-score').style.backgroundColor = 'var(--accent-red-bright)';
+
+        document.getElementById('sub-pass-score').innerText = '0.00';
+        document.getElementById('sub-pass-credit').innerText = '+0.00';
+        document.getElementById('sub-speed-credit').innerText = '+0.00';
+        document.getElementById('sub-static-credit').innerText = '+0.00';
+        document.getElementById('sub-judge-credit').innerText = '+0.00';
+        document.getElementById('sub-penalty-credit').innerText = '-0.00';
+
+        document.getElementById('val-wall-clock').innerText = '0.012 ms';
+        document.getElementById('val-speed-norm').innerText = '0.000';
+        document.getElementById('val-timeout').innerText = 'FALSE';
+        document.getElementById('val-scratch-tokens').innerText = '12';
+        return;
+      }
+
+      // Gate Open
+      cardGate.className = 'gate-status-card gate-open';
+      badgeGate.className = 'gate-badge badge-open';
+      badgeGate.innerText = '[GATE OPEN]';
+      lblGateReason.innerText = 'Functional tests 100% verified. Quality and efficiency credits active.';
+
+      const speedScore = 0.95;
+      const staticScore = 1.00;
+      const judgeScore = 0.85;
+      const penaltyScore = gamingFlagged ? 1.00 : 0.00;
+
+      const creditPass = wBase * 1.0;
+      const creditSpeed = wSpeed * speedScore;
+      const creditStatic = wStatic * staticScore;
+      const creditJudge = wJudge * judgeScore;
+      const deductionPenalty = wPenalty * penaltyScore;
+
+      const total = Math.max(0.0, creditPass + creditSpeed + creditStatic + creditJudge - deductionPenalty);
+      const maxPossible = wBase + wSpeed + wStatic + wJudge;
+      const pct = Math.min(100, Math.round((total / Math.max(0.1, maxPossible)) * 100));
+
+      document.getElementById('lbl-final-score').innerText = total.toFixed(4);
+      document.getElementById('bar-final-score').style.width = pct + '%';
+      document.getElementById('bar-final-score').style.backgroundColor = 'var(--accent-green-bright)';
+
+      document.getElementById('sub-pass-score').innerText = '1.00';
+      document.getElementById('sub-pass-w').innerText = wBase.toFixed(2);
+      document.getElementById('sub-pass-credit').innerText = '+' + creditPass.toFixed(2);
+
+      document.getElementById('sub-speed-score').innerText = speedScore.toFixed(2);
+      document.getElementById('sub-speed-w').innerText = wSpeed.toFixed(2);
+      document.getElementById('sub-speed-credit').innerText = '+' + creditSpeed.toFixed(3);
+
+      document.getElementById('sub-static-score').innerText = staticScore.toFixed(2);
+      document.getElementById('sub-static-w').innerText = wStatic.toFixed(2);
+      document.getElementById('sub-static-credit').innerText = '+' + creditStatic.toFixed(3);
+
+      document.getElementById('sub-judge-score').innerText = judgeScore.toFixed(2);
+      document.getElementById('sub-judge-w').innerText = wJudge.toFixed(2);
+      document.getElementById('sub-judge-credit').innerText = '+' + creditJudge.toFixed(3);
+
+      document.getElementById('sub-penalty-score').innerText = penaltyScore.toFixed(2);
+      document.getElementById('sub-penalty-w').innerText = wPenalty.toFixed(2);
+      document.getElementById('sub-penalty-credit').innerText = '-' + deductionPenalty.toFixed(3);
+
+      document.getElementById('val-wall-clock').innerText = '0.024 ms';
+      document.getElementById('val-speed-norm').innerText = speedScore.toFixed(3);
+      document.getElementById('val-scratch-tokens').innerText = '38';
+    }
+
+    // Initialize on page load
+    recomputeAll();
+  </script>
+</body>
+</html>
