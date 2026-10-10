@@ -1,5 +1,6 @@
 """RewardGate: Gated Hierarchical RL Reward and Anti-Gaming Evaluation Harness for Code LLMs."""
 
+from rewardgate.adapters import BatchRolloutEvaluator, RewardGateGRPOAdapter
 from rewardgate.audit import JudgeAuditor
 from rewardgate.config import RewardGateConfig
 from rewardgate.engine import RewardGateEngine
@@ -32,4 +33,6 @@ __all__ = [
     "ScratchpadAnalysis",
     "StaticCodeAnalyzer",
     "JudgeAuditor",
+    "RewardGateGRPOAdapter",
+    "BatchRolloutEvaluator",
 ]
