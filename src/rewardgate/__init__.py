@@ -2,6 +2,7 @@
 
 from rewardgate.config import RewardGateConfig
 from rewardgate.engine import RewardGateEngine
+from rewardgate.scratchpad import ScratchpadAnalysis, ScratchpadAnalyzer
 from rewardgate.specs import (
     CodeCandidate,
     ExecutionMetrics,
@@ -21,4 +22,6 @@ __all__ = [
     "GatedRewardBreakdown",
     "RewardGateConfig",
     "RewardGateEngine",
+    "ScratchpadAnalyzer",
+    "ScratchpadAnalysis",
 ]
