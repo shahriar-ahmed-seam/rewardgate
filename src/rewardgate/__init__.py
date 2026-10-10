@@ -12,6 +12,7 @@ from rewardgate.specs import (
     StaticAnalysisReport,
     TestResult,
 )
+from rewardgate.static_analysis import StaticCodeAnalyzer
 
 __version__ = "0.1.0"
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "SandboxExecutor",
     "ScratchpadAnalyzer",
     "ScratchpadAnalysis",
+    "StaticCodeAnalyzer",
 ]
