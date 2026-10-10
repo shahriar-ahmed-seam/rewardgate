@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use RewardGate in your research or post-training workflows, please cite it as below."
+authors:
+  - name: "RewardGate Engineering Team"
+title: "RewardGate: Gated Hierarchical RL Reward and Anti-Gaming Evaluation Harness for Code LLMs"
+version: 0.1.0
+date-released: 2026-10-10
+url: "https://github.com/shahriar-ahmed-seam/rewardgate"
+license: Apache-2.0
