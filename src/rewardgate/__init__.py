@@ -1,10 +1,12 @@
 """RewardGate: Gated Hierarchical RL Reward and Anti-Gaming Evaluation Harness for Code LLMs."""
 
+from rewardgate.audit import JudgeAuditor
 from rewardgate.config import RewardGateConfig
 from rewardgate.engine import RewardGateEngine
 from rewardgate.execution import SandboxExecutor
 from rewardgate.scratchpad import ScratchpadAnalysis, ScratchpadAnalyzer
 from rewardgate.specs import (
+    AuditReport,
     CodeCandidate,
     ExecutionMetrics,
     GatedRewardBreakdown,
@@ -22,10 +24,12 @@ __all__ = [
     "StaticAnalysisReport",
     "JudgeVerdict",
     "GatedRewardBreakdown",
+    "AuditReport",
     "RewardGateConfig",
     "RewardGateEngine",
     "SandboxExecutor",
     "ScratchpadAnalyzer",
     "ScratchpadAnalysis",
     "StaticCodeAnalyzer",
+    "JudgeAuditor",
 ]
